@@ -69,7 +69,7 @@ export default function TacticalDashboard() {
               <div className="text-xs text-neutral-500">
                 <div>UPTIME: 72:14:33</div>
                 <div>AGENTS: 847 ACTIVE</div>
-                <div>MISSIONS: 23 ONGOING</div>
+                <div>MISSIONS: 230 ONGOING</div>
               </div>
             </div>
           )}

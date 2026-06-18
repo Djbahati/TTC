@@ -8,10 +8,23 @@ import { Badge } from "@/components/ui/badge"
 import { Search, FileText, Eye, Download, Filter, Globe, Shield, AlertTriangle } from "lucide-react"
 
 export default function IntelligencePage() {
-  const [searchTerm, setSearchTerm] = useState("")
-  const [selectedReport, setSelectedReport] = useState(null)
+  type IntelligenceReport = {
+    id: string
+    title: string
+    classification: "TOP SECRET" | "SECRET" | "CONFIDENTIAL" | string
+    source: string
+    location: string
+    date: string
+    status: "verified" | "pending" | "active" | string
+    threat: "critical" | "high" | "medium" | "low" | string
+    summary: string
+    tags: string[]
+  }
 
-  const reports = [
+  const [searchTerm, setSearchTerm] = useState("")
+  const [selectedReport, setSelectedReport] = useState<IntelligenceReport | null>(null)
+
+  const reports: IntelligenceReport[] = [
     {
       id: "INT-2025-001",
       title: "CYBERCRIME NETWORK ANALYSIS",
@@ -74,7 +87,7 @@ export default function IntelligencePage() {
     },
   ]
 
-  const getClassificationColor = (classification) => {
+  const getClassificationColor = (classification: IntelligenceReport["classification"]) => {
     switch (classification) {
       case "TOP SECRET":
         return "bg-red-500/20 text-red-500"
@@ -87,7 +100,7 @@ export default function IntelligencePage() {
     }
   }
 
-  const getThreatColor = (threat) => {
+  const getThreatColor = (threat: IntelligenceReport["threat"]) => {
     switch (threat) {
       case "critical":
         return "bg-red-500/20 text-red-500"
@@ -102,7 +115,7 @@ export default function IntelligencePage() {
     }
   }
 
-  const getStatusColor = (status) => {
+  const getStatusColor = (status: IntelligenceReport["status"]) => {
     switch (status) {
       case "verified":
         return "bg-white/20 text-white"

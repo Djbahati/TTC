@@ -7,10 +7,20 @@ import { Input } from "@/components/ui/input"
 import { Search, Filter, MoreHorizontal, MapPin, Clock, Shield } from "lucide-react"
 
 export default function AgentNetworkPage() {
-  const [searchTerm, setSearchTerm] = useState("")
-  const [selectedAgent, setSelectedAgent] = useState(null)
+  type Agent = {
+    id: string
+    name: string
+    status: "active" | "standby" | "training" | "compromised" | string
+    location: string
+    lastSeen: string
+    missions: number
+    risk: "critical" | "high" | "medium" | "low" | string
+  }
 
-  const agents = [
+  const [searchTerm, setSearchTerm] = useState("")
+  const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null)
+
+  const agents: Agent[] = [
     {
       id: "G-078W",
       name: "VENGEFUL SPIRIT",
