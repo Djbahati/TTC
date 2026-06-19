@@ -121,6 +121,23 @@ export default function OperationsPage() {
     }
   }
 
+  const getProgressWidth = (progress: number) => {
+    switch (progress) {
+      case 100:
+        return "w-full"
+      case 75:
+        return "w-[75%]"
+      case 60:
+        return "w-[60%]"
+      case 40:
+        return "w-[40%]"
+      case 25:
+        return "w-[25%]"
+      default:
+        return "w-[50%]"
+    }
+  }
+
   const getStatusIcon = (status: Operation["status"]) => {
     switch (status) {
       case "active":
@@ -247,10 +264,7 @@ export default function OperationsPage() {
                   <span className="text-white font-mono">{operation.progress}%</span>
                 </div>
                 <div className="w-full bg-neutral-800 rounded-full h-2">
-                  <div
-                    className="bg-orange-500 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${operation.progress}%` }}
-                  ></div>
+                  <div className={`bg-orange-500 h-2 rounded-full transition-all duration-300 ${getProgressWidth(operation.progress)}`} />
                 </div>
               </div>
             </CardContent>
@@ -323,8 +337,7 @@ export default function OperationsPage() {
                       </div>
                       <div className="w-full bg-neutral-800 rounded-full h-3">
                         <div
-                          className="bg-orange-500 h-3 rounded-full transition-all duration-300"
-                          style={{ width: `${selectedOperation.progress}%` }}
+                          className={`bg-orange-500 h-3 rounded-full transition-all duration-300 ${getProgressWidth(selectedOperation.progress)}`}
                         ></div>
                       </div>
                     </div>

@@ -145,7 +145,46 @@ export default function SystemsPage() {
         return <Activity className="w-4 h-4" />
     }
   }
-
+  const getUsageWidth = (value: number) => {
+    switch (value) {
+      case 100:
+        return "w-full"
+      case 98:
+        return "w-[98%]"
+      case 95:
+        return "w-[95%]"
+      case 94:
+        return "w-[94%]"
+      case 92:
+        return "w-[92%]"
+      case 89:
+        return "w-[89%]"
+      case 87:
+        return "w-[87%]"
+      case 84:
+        return "w-[84%]"
+      case 76:
+        return "w-[76%]"
+      case 72:
+        return "w-[72%]"
+      case 67:
+        return "w-[67%]"
+      case 45:
+        return "w-[45%]"
+      case 38:
+        return "w-[38%]"
+      case 34:
+        return "w-[34%]"
+      case 23:
+        return "w-[23%]"
+      case 15:
+        return "w-[15%]"
+      case 12:
+        return "w-[12%]"
+      default:
+        return "w-[50%]"
+    }
+  }
   const getSystemIcon = (type: System["type"]) => {
     switch (type) {
       case "Primary Server":
@@ -272,30 +311,21 @@ export default function SystemsPage() {
                   <div className="text-neutral-400 mb-1">CPU</div>
                   <div className="text-white font-mono">{system.cpu}%</div>
                   <div className="w-full bg-neutral-800 rounded-full h-1 mt-1">
-                    <div
-                      className="bg-orange-500 h-1 rounded-full transition-all duration-300"
-                      style={{ width: `${system.cpu}%` }}
-                    ></div>
+                    <div className={`bg-orange-500 h-1 rounded-full transition-all duration-300 ${getUsageWidth(system.cpu)}`} />
                   </div>
                 </div>
                 <div>
                   <div className="text-neutral-400 mb-1">MEMORY</div>
                   <div className="text-white font-mono">{system.memory}%</div>
                   <div className="w-full bg-neutral-800 rounded-full h-1 mt-1">
-                    <div
-                      className="bg-orange-500 h-1 rounded-full transition-all duration-300"
-                      style={{ width: `${system.memory}%` }}
-                    ></div>
+                    <div className={`bg-orange-500 h-1 rounded-full transition-all duration-300 ${getUsageWidth(system.memory)}`} />
                   </div>
                 </div>
                 <div>
                   <div className="text-neutral-400 mb-1">STORAGE</div>
                   <div className="text-white font-mono">{system.storage}%</div>
                   <div className="w-full bg-neutral-800 rounded-full h-1 mt-1">
-                    <div
-                      className="bg-orange-500 h-1 rounded-full transition-all duration-300"
-                      style={{ width: `${system.storage}%` }}
-                    ></div>
+                    <div className={`bg-orange-500 h-1 rounded-full transition-all duration-300 ${getUsageWidth(system.storage)}`} />
                   </div>
                 </div>
               </div>
@@ -386,8 +416,7 @@ export default function SystemsPage() {
                         </div>
                         <div className="w-full bg-neutral-800 rounded-full h-2">
                           <div
-                            className="bg-orange-500 h-2 rounded-full transition-all duration-300"
-                            style={{ width: `${selectedSystem.cpu}%` }}
+                            className={`bg-orange-500 h-2 rounded-full transition-all duration-300 ${getUsageWidth(selectedSystem.cpu)}`}
                           ></div>
                         </div>
                       </div>
@@ -399,8 +428,7 @@ export default function SystemsPage() {
                         </div>
                         <div className="w-full bg-neutral-800 rounded-full h-2">
                           <div
-                            className="bg-orange-500 h-2 rounded-full transition-all duration-300"
-                            style={{ width: `${selectedSystem.memory}%` }}
+                            className={`bg-orange-500 h-2 rounded-full transition-all duration-300 ${getUsageWidth(selectedSystem.memory)}`}
                           ></div>
                         </div>
                       </div>
@@ -412,8 +440,7 @@ export default function SystemsPage() {
                         </div>
                         <div className="w-full bg-neutral-800 rounded-full h-2">
                           <div
-                            className="bg-orange-500 h-2 rounded-full transition-all duration-300"
-                            style={{ width: `${selectedSystem.storage}%` }}
+                            className={`bg-orange-500 h-2 rounded-full transition-all duration-300 ${getUsageWidth(selectedSystem.storage)}`}
                           ></div>
                         </div>
                       </div>
