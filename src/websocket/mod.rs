@@ -12,6 +12,7 @@ use std::{
     sync::Arc,
 };
 use tokio::sync::{broadcast, RwLock};
+use tracing::{debug, error, warn};
 use uuid::Uuid;
 
 use crate::AppState;
@@ -32,7 +33,7 @@ pub struct WebSocketState {
 impl WebSocketState {
     pub fn new() -> Self {
         let (global_sender, _) = broadcast::channel(1000);
-        
+
         Self {
             connections: Arc::new(RwLock::new(HashMap::new())),
             global_sender,
@@ -42,21 +43,29 @@ impl WebSocketState {
     pub async fn add_connection(&self, user_id: Uuid, sender: broadcast::Sender<WebSocketMessage>) {
         let mut connections = self.connections.write().await;
         connections.insert(user_id, sender);
+        debug!("WebSocket connection added for user {user_id}");
     }
 
     pub async fn remove_connection(&self, user_id: &Uuid) {
         let mut connections = self.connections.write().await;
         connections.remove(user_id);
+        debug!("WebSocket connection removed for user {user_id}");
     }
 
     pub async fn broadcast_to_all(&self, message: WebSocketMessage) {
-        let _ = self.global_sender.send(message);
+        if let Err(e) = self.global_sender.send(message) {
+            debug!("No active WebSocket subscribers for broadcast: {e}");
+        }
     }
 
     pub async fn send_to_user(&self, user_id: &Uuid, message: WebSocketMessage) {
         let connections = self.connections.read().await;
         if let Some(sender) = connections.get(user_id) {
-            let _ = sender.send(message);
+            if let Err(e) = sender.send(message) {
+                warn!("Failed to send WebSocket message to user {user_id}: {e}");
+            }
+        } else {
+            debug!("No active WebSocket connection for user {user_id}");
         }
     }
 
@@ -109,7 +118,7 @@ async fn websocket_connection(socket: WebSocket, state: AppState) {
     let user_id = Uuid::new_v4(); // In real implementation, extract from JWT token
 
     let (tx, mut rx) = broadcast::channel(100);
-    
+
     // Add connection to state
     state.websocket_state.add_connection(user_id, tx.clone()).await;
 
@@ -124,24 +133,44 @@ async fn websocket_connection(socket: WebSocket, state: AppState) {
                 msg = rx.recv() => {
                     match msg {
                         Ok(message) => {
-                            let json = serde_json::to_string(&message).unwrap();
+                            let json = match serde_json::to_string(&message) {
+                                Ok(j) => j,
+                                Err(e) => {
+                                    error!("Failed to serialize WebSocket message: {e}");
+                                    continue;
+                                }
+                            };
                             if sender.send(Message::Text(json)).await.is_err() {
                                 break;
                             }
                         }
-                        Err(_) => break,
+                        Err(broadcast::error::RecvError::Lagged(n)) => {
+                            warn!("WebSocket receiver lagged, skipped {n} messages");
+                            continue;
+                        }
+                        Err(broadcast::error::RecvError::Closed) => break,
                     }
                 }
                 // Handle global broadcasts
                 msg = global_rx.recv() => {
                     match msg {
                         Ok(message) => {
-                            let json = serde_json::to_string(&message).unwrap();
+                            let json = match serde_json::to_string(&message) {
+                                Ok(j) => j,
+                                Err(e) => {
+                                    error!("Failed to serialize global WebSocket message: {e}");
+                                    continue;
+                                }
+                            };
                             if sender.send(Message::Text(json)).await.is_err() {
                                 break;
                             }
                         }
-                        Err(_) => break,
+                        Err(broadcast::error::RecvError::Lagged(n)) => {
+                            warn!("Global WebSocket receiver lagged, skipped {n} messages");
+                            continue;
+                        }
+                        Err(broadcast::error::RecvError::Closed) => break,
                     }
                 }
             }
@@ -153,32 +182,58 @@ async fn websocket_connection(socket: WebSocket, state: AppState) {
         match msg {
             Ok(Message::Text(text)) => {
                 // Handle incoming WebSocket messages
-                if let Ok(ws_msg) = serde_json::from_str::<WebSocketMessage>(&text) {
-                    match ws_msg.message_type.as_str() {
-                        "ping" => {
-                            let pong = WebSocketMessage {
-                                message_type: "pong".to_string(),
-                                data: serde_json::json!({}),
-                                timestamp: chrono::Utc::now(),
-                            };
-                            let _ = tx.send(pong);
-                        }
-                        "subscribe_dashboard" => {
-                            // Send current dashboard data
-                            if let Ok(stats) = crate::services::dashboard::get_dashboard_statistics(&state.db).await {
-                                let message = WebSocketMessage {
-                                    message_type: "dashboard_data".to_string(),
-                                    data: serde_json::to_value(stats).unwrap(),
+                match serde_json::from_str::<WebSocketMessage>(&text) {
+                    Ok(ws_msg) => {
+                        match ws_msg.message_type.as_str() {
+                            "ping" => {
+                                let pong = WebSocketMessage {
+                                    message_type: "pong".to_string(),
+                                    data: serde_json::json!({}),
                                     timestamp: chrono::Utc::now(),
                                 };
-                                let _ = tx.send(message);
+                                if let Err(e) = tx.send(pong) {
+                                    warn!("Failed to send pong response: {e}");
+                                }
+                            }
+                            "subscribe_dashboard" => {
+                                match crate::services::dashboard::get_dashboard_statistics(&state.db).await {
+                                    Ok(stats) => {
+                                        match serde_json::to_value(&stats) {
+                                            Ok(data) => {
+                                                let message = WebSocketMessage {
+                                                    message_type: "dashboard_data".to_string(),
+                                                    data,
+                                                    timestamp: chrono::Utc::now(),
+                                                };
+                                                if let Err(e) = tx.send(message) {
+                                                    warn!("Failed to send dashboard data: {e}");
+                                                }
+                                            }
+                                            Err(e) => {
+                                                error!("Failed to serialize dashboard stats: {e}");
+                                            }
+                                        }
+                                    }
+                                    Err(e) => {
+                                        error!("Failed to fetch dashboard stats for WebSocket subscription: {e}");
+                                    }
+                                }
+                            }
+                            other => {
+                                debug!("Received unknown WebSocket message type: {other}");
                             }
                         }
-                        _ => {}
+                    }
+                    Err(e) => {
+                        warn!("Failed to parse incoming WebSocket message: {e}");
                     }
                 }
             }
             Ok(Message::Close(_)) => break,
+            Err(e) => {
+                warn!("WebSocket receive error for user {user_id}: {e}");
+                break;
+            }
             _ => {}
         }
     }
