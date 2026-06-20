@@ -40,3 +40,47 @@ impl From<sqlx::Error> for AppError {
         AppError::Database(err)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::http::StatusCode;
+
+    fn extract_status(error: AppError) -> StatusCode {
+        let response = error.into_response();
+        response.status()
+    }
+
+    #[test]
+    fn not_found_returns_404() {
+        assert_eq!(extract_status(AppError::NotFound), StatusCode::NOT_FOUND);
+    }
+
+    #[test]
+    fn unauthorized_returns_401() {
+        assert_eq!(extract_status(AppError::Unauthorized), StatusCode::UNAUTHORIZED);
+    }
+
+    #[test]
+    fn bad_request_returns_400() {
+        assert_eq!(
+            extract_status(AppError::BadRequest("invalid input".to_string())),
+            StatusCode::BAD_REQUEST,
+        );
+    }
+
+    #[test]
+    fn internal_server_error_returns_500() {
+        assert_eq!(
+            extract_status(AppError::InternalServerError),
+            StatusCode::INTERNAL_SERVER_ERROR,
+        );
+    }
+
+    #[test]
+    fn sqlx_error_converts_to_app_error() {
+        let sqlx_err = sqlx::Error::RowNotFound;
+        let app_err: AppError = sqlx_err.into();
+        assert_eq!(extract_status(app_err), StatusCode::INTERNAL_SERVER_ERROR);
+    }
+}
