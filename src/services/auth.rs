@@ -68,3 +68,60 @@ fn generate_jwt_token(user: &User) -> Result<String> {
     // In real implementation, use jsonwebtoken crate
     Ok(format!("jwt_token_for_{}", user.id)) // Simplified for demo
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn verify_password_accepts_correct_password() {
+        assert!(verify_password("password", "any_hash"));
+    }
+
+    #[test]
+    fn verify_password_rejects_wrong_password() {
+        assert!(!verify_password("wrong", "any_hash"));
+    }
+
+    #[test]
+    fn verify_password_rejects_empty_password() {
+        assert!(!verify_password("", "any_hash"));
+    }
+
+    #[test]
+    fn generate_jwt_token_contains_user_id() {
+        let user = User {
+            id: uuid::Uuid::parse_str("550e8400-e29b-41d4-a716-446655440000").unwrap(),
+            email: "test@example.com".to_string(),
+            password_hash: "hash".to_string(),
+            role: UserRole::Doctor,
+            first_name: "John".to_string(),
+            last_name: "Doe".to_string(),
+            phone: None,
+            is_active: true,
+            last_login: None,
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+        };
+        let token = generate_jwt_token(&user).unwrap();
+        assert!(token.contains("550e8400-e29b-41d4-a716-446655440000"));
+    }
+
+    #[test]
+    fn generate_jwt_token_returns_ok() {
+        let user = User {
+            id: uuid::Uuid::new_v4(),
+            email: "test@example.com".to_string(),
+            password_hash: "hash".to_string(),
+            role: UserRole::Admin,
+            first_name: "Admin".to_string(),
+            last_name: "User".to_string(),
+            phone: Some("+1234567890".to_string()),
+            is_active: true,
+            last_login: None,
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+        };
+        assert!(generate_jwt_token(&user).is_ok());
+    }
+}

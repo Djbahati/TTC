@@ -221,3 +221,166 @@ pub struct SendMessageRequest {
     pub content: String,
     pub is_urgent: Option<bool>,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn login_request_deserializes_from_json() {
+        let json = r#"{"email": "test@example.com", "password": "secret"}"#;
+        let req: LoginRequest = serde_json::from_str(json).unwrap();
+        assert_eq!(req.email, "test@example.com");
+        assert_eq!(req.password, "secret");
+    }
+
+    #[test]
+    fn user_info_serializes_to_json() {
+        let info = UserInfo {
+            id: Uuid::parse_str("550e8400-e29b-41d4-a716-446655440000").unwrap(),
+            email: "user@example.com".to_string(),
+            role: UserRole::Doctor,
+            first_name: "Jane".to_string(),
+            last_name: "Doe".to_string(),
+        };
+        let json = serde_json::to_string(&info).unwrap();
+        assert!(json.contains("user@example.com"));
+        assert!(json.contains("Jane"));
+        assert!(json.contains("Doctor"));
+    }
+
+    #[test]
+    fn login_response_serializes_with_token_and_user() {
+        let resp = LoginResponse {
+            token: "abc123".to_string(),
+            user: UserInfo {
+                id: Uuid::new_v4(),
+                email: "test@test.com".to_string(),
+                role: UserRole::Admin,
+                first_name: "Admin".to_string(),
+                last_name: "User".to_string(),
+            },
+        };
+        let json = serde_json::to_string(&resp).unwrap();
+        assert!(json.contains("abc123"));
+        assert!(json.contains("Admin"));
+    }
+
+    #[test]
+    fn create_appointment_request_deserializes() {
+        let json = r#"{
+            "patient_id": "550e8400-e29b-41d4-a716-446655440000",
+            "doctor_id": "660e8400-e29b-41d4-a716-446655440000",
+            "appointment_date": "2025-06-15",
+            "appointment_time": "14:30:00",
+            "reason": "Checkup"
+        }"#;
+        let req: CreateAppointmentRequest = serde_json::from_str(json).unwrap();
+        assert_eq!(req.reason, Some("Checkup".to_string()));
+        assert_eq!(req.appointment_date.to_string(), "2025-06-15");
+    }
+
+    #[test]
+    fn create_appointment_request_deserializes_without_optional_reason() {
+        let json = r#"{
+            "patient_id": "550e8400-e29b-41d4-a716-446655440000",
+            "doctor_id": "660e8400-e29b-41d4-a716-446655440000",
+            "appointment_date": "2025-06-15",
+            "appointment_time": "14:30:00"
+        }"#;
+        let req: CreateAppointmentRequest = serde_json::from_str(json).unwrap();
+        assert_eq!(req.reason, None);
+    }
+
+    #[test]
+    fn update_appointment_status_request_deserializes() {
+        let json = r#"{"status": "Completed", "notes": "All good"}"#;
+        let req: UpdateAppointmentStatusRequest = serde_json::from_str(json).unwrap();
+        assert!(matches!(req.status, AppointmentStatus::Completed));
+        assert_eq!(req.notes, Some("All good".to_string()));
+    }
+
+    #[test]
+    fn send_message_request_deserializes() {
+        let json = r#"{
+            "recipient_id": "550e8400-e29b-41d4-a716-446655440000",
+            "content": "Hello",
+            "is_urgent": true
+        }"#;
+        let req: SendMessageRequest = serde_json::from_str(json).unwrap();
+        assert_eq!(req.content, "Hello");
+        assert_eq!(req.is_urgent, Some(true));
+    }
+
+    #[test]
+    fn send_message_request_deserializes_without_optional_urgent() {
+        let json = r#"{
+            "recipient_id": "550e8400-e29b-41d4-a716-446655440000",
+            "content": "Hello"
+        }"#;
+        let req: SendMessageRequest = serde_json::from_str(json).unwrap();
+        assert_eq!(req.is_urgent, None);
+    }
+
+    #[test]
+    fn dashboard_stats_serializes() {
+        let stats = DashboardStats {
+            appointments_today: AppointmentStats {
+                total: 10, confirmed: 5, in_progress: 2,
+                completed: 2, cancelled: 1, no_shows: 0,
+            },
+            triage_queue: TriageStats {
+                waiting: 3, urgent_cases: 1, average_wait_time: Some(15.5),
+            },
+            staff_status: StaffStats {
+                online: 8, in_consultation: 3, on_break: 2,
+            },
+            inventory_alerts: InventoryStats {
+                low_stock_items: 5, expiring_soon: 2,
+            },
+            billing_summary: BillingStats {
+                revenue_today: rust_decimal::Decimal::new(50000, 2),
+                unpaid_invoices: 3, failed_payments: 0,
+            },
+            messages: MessageStats {
+                unread_messages: 7, urgent_messages: 2,
+            },
+        };
+        let json = serde_json::to_string(&stats).unwrap();
+        assert!(json.contains("appointments_today"));
+        assert!(json.contains("triage_queue"));
+        assert!(json.contains("staff_status"));
+    }
+
+    #[test]
+    fn user_role_serializes_correctly() {
+        let role = UserRole::Doctor;
+        let json = serde_json::to_string(&role).unwrap();
+        assert_eq!(json, "\"Doctor\"");
+    }
+
+    #[test]
+    fn appointment_status_serializes_correctly() {
+        let status = AppointmentStatus::CheckedIn;
+        let json = serde_json::to_string(&status).unwrap();
+        assert_eq!(json, "\"CheckedIn\"");
+    }
+
+    #[test]
+    fn priority_level_serializes_correctly() {
+        let priority = PriorityLevel::Critical;
+        let json = serde_json::to_string(&priority).unwrap();
+        assert_eq!(json, "\"Critical\"");
+    }
+
+    #[test]
+    fn triage_stats_with_none_average_wait_time() {
+        let stats = TriageStats {
+            waiting: 0,
+            urgent_cases: 0,
+            average_wait_time: None,
+        };
+        let json = serde_json::to_string(&stats).unwrap();
+        assert!(json.contains("null"));
+    }
+}
