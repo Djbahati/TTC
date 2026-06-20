@@ -1,5 +1,4 @@
 use axum::{
-    extract::State,
     http::StatusCode,
     response::Json,
     routing::{get, post},
@@ -9,7 +8,7 @@ use sqlx::{PgPool, postgres::PgPoolOptions};
 use std::sync::Arc;
 use tokio::net::TcpListener;
 use tower_http::cors::CorsLayer;
-use tracing::{info, error};
+use tracing::info;
 
 mod models;
 mod handlers;
@@ -33,11 +32,19 @@ async fn main() -> anyhow::Result<()> {
     tracing_subscriber::init();
 
     // Load environment variables
-    dotenvy::dotenv().ok();
+    match dotenvy::dotenv() {
+        Ok(path) => info!("Loaded environment from {:?}", path),
+        Err(e) => {
+            tracing::warn!("Could not load .env file ({e}), using existing environment variables");
+        }
+    }
 
     // Database connection
     let database_url = std::env::var("DATABASE_URL")
-        .unwrap_or_else(|_| "postgresql://postgres:password@localhost/hospital_management".to_string());
+        .unwrap_or_else(|_| {
+            tracing::warn!("DATABASE_URL not set, falling back to default local connection string");
+            "postgresql://postgres:password@localhost/hospital_management".to_string()
+        });
 
     let pool = PgPoolOptions::new()
         .max_connections(20)
