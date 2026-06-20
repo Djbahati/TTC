@@ -1,6 +1,7 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { getStatusDotColor } from "@/lib/colors"
 
 export default function CommandCenterPage() {
   return (
@@ -40,15 +41,7 @@ export default function CommandCenterPage() {
                   className="flex items-center justify-between p-2 bg-neutral-800 rounded hover:bg-neutral-700 transition-colors cursor-pointer"
                 >
                   <div className="flex items-center gap-3">
-                    <div
-                      className={`w-2 h-2 rounded-full ${
-                        agent.status === "active"
-                          ? "bg-white"
-                          : agent.status === "standby"
-                            ? "bg-neutral-500"
-                            : "bg-red-500"
-                      }`}
-                    ></div>
+                    <div className={`w-2 h-2 rounded-full ${getStatusDotColor(agent.status)}`}></div>
                     <div>
                       <div className="text-xs text-white font-mono">{agent.id}</div>
                       <div className="text-xs text-neutral-500">{agent.name}</div>

@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import {
@@ -17,6 +16,12 @@ import {
   CheckCircle,
   Settings,
 } from "lucide-react"
+import { getStatusBadgeColor, getHealthColor } from "@/lib/colors"
+import { StatCard } from "@/components/stat-card"
+import { PageHeader } from "@/components/page-header"
+import { DetailModal, ModalPrimaryButton, ModalOutlineButton } from "@/components/detail-modal"
+import { ProgressBar } from "@/components/progress-bar"
+import { Button } from "@/components/ui/button"
 
 export default function SystemsPage() {
   type System = {
@@ -116,21 +121,6 @@ export default function SystemsPage() {
     },
   ]
 
-  const getStatusColor = (status: System["status"]) => {
-    switch (status) {
-      case "online":
-        return "bg-white/20 text-white"
-      case "warning":
-        return "bg-orange-500/20 text-orange-500"
-      case "maintenance":
-        return "bg-neutral-500/20 text-neutral-300"
-      case "offline":
-        return "bg-red-500/20 text-red-500"
-      default:
-        return "bg-neutral-500/20 text-neutral-300"
-    }
-  }
-
   const getStatusIcon = (status: System["status"]) => {
     switch (status) {
       case "online":
@@ -145,46 +135,7 @@ export default function SystemsPage() {
         return <Activity className="w-4 h-4" />
     }
   }
-  const getUsageWidth = (value: number) => {
-    switch (value) {
-      case 100:
-        return "w-full"
-      case 98:
-        return "w-[98%]"
-      case 95:
-        return "w-[95%]"
-      case 94:
-        return "w-[94%]"
-      case 92:
-        return "w-[92%]"
-      case 89:
-        return "w-[89%]"
-      case 87:
-        return "w-[87%]"
-      case 84:
-        return "w-[84%]"
-      case 76:
-        return "w-[76%]"
-      case 72:
-        return "w-[72%]"
-      case 67:
-        return "w-[67%]"
-      case 45:
-        return "w-[45%]"
-      case 38:
-        return "w-[38%]"
-      case 34:
-        return "w-[34%]"
-      case 23:
-        return "w-[23%]"
-      case 15:
-        return "w-[15%]"
-      case 12:
-        return "w-[12%]"
-      default:
-        return "w-[50%]"
-    }
-  }
+
   const getSystemIcon = (type: System["type"]) => {
     switch (type) {
       case "Primary Server":
@@ -204,76 +155,24 @@ export default function SystemsPage() {
     }
   }
 
-  const getHealthColor = (health: System["health"]) => {
-    if (health >= 95) return "text-white"
-    if (health >= 85) return "text-white"
-    if (health >= 70) return "text-orange-500"
-    return "text-red-500"
-  }
-
   return (
     <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-white tracking-wider">SYSTEMS MONITOR</h1>
-          <p className="text-sm text-neutral-400">Infrastructure health and performance monitoring</p>
-        </div>
-        <div className="flex gap-2">
-          <Button className="bg-orange-500 hover:bg-orange-600 text-white">System Scan</Button>
-          <Button className="bg-orange-500 hover:bg-orange-600 text-white">Maintenance Mode</Button>
-        </div>
-      </div>
+      <PageHeader
+        title="SYSTEMS MONITOR"
+        subtitle="Infrastructure health and performance monitoring"
+        actions={
+          <>
+            <Button className="bg-orange-500 hover:bg-orange-600 text-white">System Scan</Button>
+            <Button className="bg-orange-500 hover:bg-orange-600 text-white">Maintenance Mode</Button>
+          </>
+        }
+      />
 
-      {/* System Overview Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="bg-neutral-900 border-neutral-700">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-neutral-400 tracking-wider">SYSTEMS ONLINE</p>
-                <p className="text-2xl font-bold text-white font-mono">24/26</p>
-              </div>
-              <CheckCircle className="w-8 h-8 text-white" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-neutral-900 border-neutral-700">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-neutral-400 tracking-wider">WARNINGS</p>
-                <p className="text-2xl font-bold text-orange-500 font-mono">3</p>
-              </div>
-              <AlertTriangle className="w-8 h-8 text-orange-500" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-neutral-900 border-neutral-700">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-neutral-400 tracking-wider">AVG UPTIME</p>
-                <p className="text-2xl font-bold text-white font-mono">99.7%</p>
-              </div>
-              <Activity className="w-8 h-8 text-white" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-neutral-900 border-neutral-700">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-neutral-400 tracking-wider">MAINTENANCE</p>
-                <p className="text-2xl font-bold text-neutral-300 font-mono">1</p>
-              </div>
-              <Settings className="w-8 h-8 text-neutral-300" />
-            </div>
-          </CardContent>
-        </Card>
+        <StatCard label="SYSTEMS ONLINE" value="24/26" icon={CheckCircle} />
+        <StatCard label="WARNINGS" value={3} icon={AlertTriangle} valueClassName="text-orange-500" iconClassName="text-orange-500" />
+        <StatCard label="AVG UPTIME" value="99.7%" icon={Activity} />
+        <StatCard label="MAINTENANCE" value={1} icon={Settings} valueClassName="text-neutral-300" iconClassName="text-neutral-300" />
       </div>
 
       {/* Systems Grid */}
@@ -295,7 +194,7 @@ export default function SystemsPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   {getStatusIcon(system.status)}
-                  <Badge className={getStatusColor(system.status)}>{system.status.toUpperCase()}</Badge>
+                  <Badge className={getStatusBadgeColor(system.status)}>{system.status.toUpperCase()}</Badge>
                 </div>
               </div>
             </CardHeader>
@@ -307,27 +206,15 @@ export default function SystemsPage() {
               <Progress value={system.health} className="h-2" />
 
               <div className="grid grid-cols-3 gap-4 text-xs">
-                <div>
-                  <div className="text-neutral-400 mb-1">CPU</div>
-                  <div className="text-white font-mono">{system.cpu}%</div>
-                  <div className="w-full bg-neutral-800 rounded-full h-1 mt-1">
-                    <div className={`bg-orange-500 h-1 rounded-full transition-all duration-300 ${getUsageWidth(system.cpu)}`} />
-                  </div>
-                </div>
-                <div>
-                  <div className="text-neutral-400 mb-1">MEMORY</div>
-                  <div className="text-white font-mono">{system.memory}%</div>
-                  <div className="w-full bg-neutral-800 rounded-full h-1 mt-1">
-                    <div className={`bg-orange-500 h-1 rounded-full transition-all duration-300 ${getUsageWidth(system.memory)}`} />
-                  </div>
-                </div>
-                <div>
-                  <div className="text-neutral-400 mb-1">STORAGE</div>
-                  <div className="text-white font-mono">{system.storage}%</div>
-                  <div className="w-full bg-neutral-800 rounded-full h-1 mt-1">
-                    <div className={`bg-orange-500 h-1 rounded-full transition-all duration-300 ${getUsageWidth(system.storage)}`} />
-                  </div>
-                </div>
+                {([["CPU", system.cpu], ["MEMORY", system.memory], ["STORAGE", system.storage]] as const).map(
+                  ([label, value]) => (
+                    <div key={label}>
+                      <div className="text-neutral-400 mb-1">{label}</div>
+                      <div className="text-white font-mono">{value}%</div>
+                      <ProgressBar value={value} height="h-1" />
+                    </div>
+                  ),
+                )}
               </div>
 
               <div className="space-y-1 text-xs text-neutral-400">
@@ -347,126 +234,76 @@ export default function SystemsPage() {
 
       {/* System Detail Modal */}
       {selectedSystem && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <Card className="bg-neutral-900 border-neutral-700 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div className="flex items-center gap-3">
-                {getSystemIcon(selectedSystem.type)}
-                <div>
-                  <CardTitle className="text-xl font-bold text-white tracking-wider">{selectedSystem.name}</CardTitle>
-                  <p className="text-sm text-neutral-400">
-                    {selectedSystem.id} • {selectedSystem.type}
-                  </p>
-                </div>
-              </div>
-              <Button
-                variant="ghost"
-                onClick={() => setSelectedSystem(null)}
-                className="text-neutral-400 hover:text-white"
-              >
-                ✕
-              </Button>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="text-sm font-medium text-neutral-300 tracking-wider mb-2">SYSTEM STATUS</h3>
-                    <div className="flex items-center gap-2">
-                      {getStatusIcon(selectedSystem.status)}
-                      <Badge className={getStatusColor(selectedSystem.status)}>
-                        {selectedSystem.status.toUpperCase()}
-                      </Badge>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="text-sm font-medium text-neutral-300 tracking-wider mb-2">SYSTEM INFORMATION</h3>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-neutral-400">Location:</span>
-                        <span className="text-white">{selectedSystem.location}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-neutral-400">Uptime:</span>
-                        <span className="text-white font-mono">{selectedSystem.uptime}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-neutral-400">Last Maintenance:</span>
-                        <span className="text-white font-mono">{selectedSystem.lastMaintenance}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-neutral-400">Health Score:</span>
-                        <span className={`font-mono ${getHealthColor(selectedSystem.health)}`}>
-                          {selectedSystem.health}%
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="text-sm font-medium text-neutral-300 tracking-wider mb-2">RESOURCE USAGE</h3>
-                    <div className="space-y-3">
-                      <div>
-                        <div className="flex justify-between text-sm mb-1">
-                          <span className="text-neutral-400">CPU Usage</span>
-                          <span className="text-white font-mono">{selectedSystem.cpu}%</span>
-                        </div>
-                        <div className="w-full bg-neutral-800 rounded-full h-2">
-                          <div
-                            className={`bg-orange-500 h-2 rounded-full transition-all duration-300 ${getUsageWidth(selectedSystem.cpu)}`}
-                          ></div>
-                        </div>
-                      </div>
-
-                      <div>
-                        <div className="flex justify-between text-sm mb-1">
-                          <span className="text-neutral-400">Memory Usage</span>
-                          <span className="text-white font-mono">{selectedSystem.memory}%</span>
-                        </div>
-                        <div className="w-full bg-neutral-800 rounded-full h-2">
-                          <div
-                            className={`bg-orange-500 h-2 rounded-full transition-all duration-300 ${getUsageWidth(selectedSystem.memory)}`}
-                          ></div>
-                        </div>
-                      </div>
-
-                      <div>
-                        <div className="flex justify-between text-sm mb-1">
-                          <span className="text-neutral-400">Storage Usage</span>
-                          <span className="text-white font-mono">{selectedSystem.storage}%</span>
-                        </div>
-                        <div className="w-full bg-neutral-800 rounded-full h-2">
-                          <div
-                            className={`bg-orange-500 h-2 rounded-full transition-all duration-300 ${getUsageWidth(selectedSystem.storage)}`}
-                          ></div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+        <DetailModal
+          title={selectedSystem.name}
+          subtitle={`${selectedSystem.id} • ${selectedSystem.type}`}
+          titlePrefix={getSystemIcon(selectedSystem.type)}
+          onClose={() => setSelectedSystem(null)}
+          actions={
+            <>
+              <ModalPrimaryButton>Restart System</ModalPrimaryButton>
+              <ModalOutlineButton>View Logs</ModalOutlineButton>
+              <ModalOutlineButton>Schedule Maintenance</ModalOutlineButton>
+            </>
+          }
+        >
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-sm font-medium text-neutral-300 tracking-wider mb-2">SYSTEM STATUS</h3>
+                <div className="flex items-center gap-2">
+                  {getStatusIcon(selectedSystem.status)}
+                  <Badge className={getStatusBadgeColor(selectedSystem.status)}>
+                    {selectedSystem.status.toUpperCase()}
+                  </Badge>
                 </div>
               </div>
 
-              <div className="flex gap-2 pt-4 border-t border-neutral-700">
-                <Button className="bg-orange-500 hover:bg-orange-600 text-white">Restart System</Button>
-                <Button
-                  variant="outline"
-                  className="border-neutral-700 text-neutral-400 hover:bg-neutral-800 hover:text-neutral-300 bg-transparent"
-                >
-                  View Logs
-                </Button>
-                <Button
-                  variant="outline"
-                  className="border-neutral-700 text-neutral-400 hover:bg-neutral-800 hover:text-neutral-300 bg-transparent"
-                >
-                  Schedule Maintenance
-                </Button>
+              <div>
+                <h3 className="text-sm font-medium text-neutral-300 tracking-wider mb-2">SYSTEM INFORMATION</h3>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-neutral-400">Location:</span>
+                    <span className="text-white">{selectedSystem.location}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-neutral-400">Uptime:</span>
+                    <span className="text-white font-mono">{selectedSystem.uptime}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-neutral-400">Last Maintenance:</span>
+                    <span className="text-white font-mono">{selectedSystem.lastMaintenance}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-neutral-400">Health Score:</span>
+                    <span className={`font-mono ${getHealthColor(selectedSystem.health)}`}>
+                      {selectedSystem.health}%
+                    </span>
+                  </div>
+                </div>
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-sm font-medium text-neutral-300 tracking-wider mb-2">RESOURCE USAGE</h3>
+                <div className="space-y-3">
+                  {([["CPU Usage", selectedSystem.cpu], ["Memory Usage", selectedSystem.memory], ["Storage Usage", selectedSystem.storage]] as const).map(
+                    ([label, value]) => (
+                      <div key={label}>
+                        <div className="flex justify-between text-sm mb-1">
+                          <span className="text-neutral-400">{label}</span>
+                          <span className="text-white font-mono">{value}%</span>
+                        </div>
+                        <ProgressBar value={value} />
+                      </div>
+                    ),
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </DetailModal>
       )}
     </div>
   )
