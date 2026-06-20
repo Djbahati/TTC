@@ -3,9 +3,14 @@
 import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Search, FileText, Eye, Download, Filter, Globe, Shield, AlertTriangle } from "lucide-react"
+import { FileText, Eye, Download, Filter, Globe, Shield, AlertTriangle } from "lucide-react"
+import { getStatusBadgeColor, getSeverityColor, getClassificationColor } from "@/lib/colors"
+import { StatCard } from "@/components/stat-card"
+import { PageHeader } from "@/components/page-header"
+import { SearchInput } from "@/components/search-input"
+import { DetailModal, ModalPrimaryButton, ModalOutlineButton } from "@/components/detail-modal"
+import { ProgressBar } from "@/components/progress-bar"
 
 export default function IntelligencePage() {
   type IntelligenceReport = {
@@ -87,45 +92,18 @@ export default function IntelligencePage() {
     },
   ]
 
-  const getClassificationColor = (classification: IntelligenceReport["classification"]) => {
-    switch (classification) {
-      case "TOP SECRET":
-        return "bg-red-500/20 text-red-500"
-      case "SECRET":
-        return "bg-orange-500/20 text-orange-500"
-      case "CONFIDENTIAL":
-        return "bg-neutral-500/20 text-neutral-300"
-      default:
-        return "bg-white/20 text-white"
-    }
+  const threatToProgress: Record<string, number> = {
+    critical: 100,
+    high: 75,
+    medium: 50,
+    low: 25,
   }
 
-  const getThreatColor = (threat: IntelligenceReport["threat"]) => {
-    switch (threat) {
-      case "critical":
-        return "bg-red-500/20 text-red-500"
-      case "high":
-        return "bg-orange-500/20 text-orange-500"
-      case "medium":
-        return "bg-neutral-500/20 text-neutral-300"
-      case "low":
-        return "bg-white/20 text-white"
-      default:
-        return "bg-neutral-500/20 text-neutral-300"
-    }
-  }
-
-  const getStatusColor = (status: IntelligenceReport["status"]) => {
-    switch (status) {
-      case "verified":
-        return "bg-white/20 text-white"
-      case "pending":
-        return "bg-orange-500/20 text-orange-500"
-      case "active":
-        return "bg-white/20 text-white"
-      default:
-        return "bg-neutral-500/20 text-neutral-300"
-    }
+  const threatToBarColor: Record<string, string> = {
+    critical: "bg-red-500",
+    high: "bg-orange-500",
+    medium: "bg-neutral-400",
+    low: "bg-white",
   }
 
   const filteredReports = reports.filter(
@@ -137,72 +115,31 @@ export default function IntelligencePage() {
 
   return (
     <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-white tracking-wider">INTELLIGENCE CENTER</h1>
-          <p className="text-sm text-neutral-400">Classified reports and threat analysis</p>
-        </div>
-        <div className="flex gap-2">
-          <Button className="bg-orange-500 hover:bg-orange-600 text-white">New Report</Button>
-          <Button className="bg-orange-500 hover:bg-orange-600 text-white">
-            <Filter className="w-4 h-4 mr-2" />
-            Filter
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="INTELLIGENCE CENTER"
+        subtitle="Classified reports and threat analysis"
+        actions={
+          <>
+            <Button className="bg-orange-500 hover:bg-orange-600 text-white">New Report</Button>
+            <Button className="bg-orange-500 hover:bg-orange-600 text-white">
+              <Filter className="w-4 h-4 mr-2" />
+              Filter
+            </Button>
+          </>
+        }
+      />
 
       {/* Stats and Search */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-        <Card className="lg:col-span-2 bg-neutral-900 border-neutral-700">
-          <CardContent className="p-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-neutral-400" />
-              <Input
-                placeholder="Search intelligence reports..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-neutral-800 border-neutral-600 text-white placeholder-neutral-400"
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-neutral-900 border-neutral-700">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-neutral-400 tracking-wider">TOTAL REPORTS</p>
-                <p className="text-2xl font-bold text-white font-mono">1,247</p>
-              </div>
-              <FileText className="w-8 h-8 text-white" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-neutral-900 border-neutral-700">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-neutral-400 tracking-wider">CRITICAL THREATS</p>
-                <p className="text-2xl font-bold text-red-500 font-mono">12</p>
-              </div>
-              <AlertTriangle className="w-8 h-8 text-red-500" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-neutral-900 border-neutral-700">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-neutral-400 tracking-wider">ACTIVE SOURCES</p>
-                <p className="text-2xl font-bold text-white font-mono">89</p>
-              </div>
-              <Globe className="w-8 h-8 text-white" />
-            </div>
-          </CardContent>
-        </Card>
+        <SearchInput
+          placeholder="Search intelligence reports..."
+          value={searchTerm}
+          onChange={setSearchTerm}
+          className="lg:col-span-2"
+        />
+        <StatCard label="TOTAL REPORTS" value="1,247" icon={FileText} />
+        <StatCard label="CRITICAL THREATS" value={12} icon={AlertTriangle} valueClassName="text-red-500" iconClassName="text-red-500" />
+        <StatCard label="ACTIVE SOURCES" value={89} icon={Globe} />
       </div>
 
       {/* Intelligence Reports */}
@@ -242,8 +179,8 @@ export default function IntelligencePage() {
                   <div className="flex flex-col sm:items-end gap-2">
                     <div className="flex flex-wrap gap-2">
                       <Badge className={getClassificationColor(report.classification)}>{report.classification}</Badge>
-                      <Badge className={getThreatColor(report.threat)}>{report.threat.toUpperCase()}</Badge>
-                      <Badge className={getStatusColor(report.status)}>{report.status.toUpperCase()}</Badge>
+                      <Badge className={getSeverityColor(report.threat)}>{report.threat.toUpperCase()}</Badge>
+                      <Badge className={getStatusBadgeColor(report.status)}>{report.status.toUpperCase()}</Badge>
                     </div>
 
                     <div className="text-xs text-neutral-400 space-y-1">
@@ -267,127 +204,98 @@ export default function IntelligencePage() {
 
       {/* Report Detail Modal */}
       {selectedReport && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <Card className="bg-neutral-900 border-neutral-700 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-            <CardHeader className="flex flex-row items-center justify-between">
+        <DetailModal
+          title={selectedReport.title}
+          subtitle={selectedReport.id}
+          onClose={() => setSelectedReport(null)}
+          actions={
+            <>
+              <ModalPrimaryButton>
+                <Eye className="w-4 h-4 mr-2" />
+                View Full Report
+              </ModalPrimaryButton>
+              <ModalOutlineButton>
+                <Download className="w-4 h-4 mr-2" />
+                Download
+              </ModalOutlineButton>
+              <ModalOutlineButton>Share Intel</ModalOutlineButton>
+            </>
+          }
+        >
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-4">
               <div>
-                <CardTitle className="text-xl font-bold text-white tracking-wider">{selectedReport.title}</CardTitle>
-                <p className="text-sm text-neutral-400 font-mono">{selectedReport.id}</p>
-              </div>
-              <Button
-                variant="ghost"
-                onClick={() => setSelectedReport(null)}
-                className="text-neutral-400 hover:text-white"
-              >
-                ✕
-              </Button>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="text-sm font-medium text-neutral-300 tracking-wider mb-2">CLASSIFICATION</h3>
-                    <div className="flex gap-2">
-                      <Badge className={getClassificationColor(selectedReport.classification)}>
-                        {selectedReport.classification}
-                      </Badge>
-                      <Badge className={getThreatColor(selectedReport.threat)}>
-                        THREAT: {selectedReport.threat.toUpperCase()}
-                      </Badge>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="text-sm font-medium text-neutral-300 tracking-wider mb-2">SOURCE DETAILS</h3>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-neutral-400">Source Type:</span>
-                        <span className="text-white font-mono">{selectedReport.source}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-neutral-400">Location:</span>
-                        <span className="text-white">{selectedReport.location}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-neutral-400">Date:</span>
-                        <span className="text-white font-mono">{selectedReport.date}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-neutral-400">Status:</span>
-                        <Badge className={getStatusColor(selectedReport.status)}>
-                          {selectedReport.status.toUpperCase()}
-                        </Badge>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="text-sm font-medium text-neutral-300 tracking-wider mb-2">TAGS</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedReport.tags.map((tag) => (
-                        <Badge key={tag} className="bg-neutral-800 text-neutral-300">
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="text-sm font-medium text-neutral-300 tracking-wider mb-2">THREAT ASSESSMENT</h3>
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-neutral-400">Threat Level</span>
-                        <Badge className={getThreatColor(selectedReport.threat)}>
-                          {selectedReport.threat.toUpperCase()}
-                        </Badge>
-                      </div>
-                      <div className="w-full bg-neutral-800 rounded-full h-2">
-                        <div
-                          className={`h-2 rounded-full transition-all duration-300 ${
-                            selectedReport.threat === "critical"
-                              ? "bg-red-500 w-full"
-                              : selectedReport.threat === "high"
-                                ? "bg-orange-500 w-3/4"
-                                : selectedReport.threat === "medium"
-                                  ? "bg-neutral-400 w-1/2"
-                                  : "bg-white w-1/4"
-                          }`}
-                        ></div>
-                      </div>
-                    </div>
-                  </div>
+                <h3 className="text-sm font-medium text-neutral-300 tracking-wider mb-2">CLASSIFICATION</h3>
+                <div className="flex gap-2">
+                  <Badge className={getClassificationColor(selectedReport.classification)}>
+                    {selectedReport.classification}
+                  </Badge>
+                  <Badge className={getSeverityColor(selectedReport.threat)}>
+                    THREAT: {selectedReport.threat.toUpperCase()}
+                  </Badge>
                 </div>
               </div>
 
               <div>
-                <h3 className="text-sm font-medium text-neutral-300 tracking-wider mb-2">EXECUTIVE SUMMARY</h3>
-                <p className="text-sm text-neutral-300 leading-relaxed">{selectedReport.summary}</p>
+                <h3 className="text-sm font-medium text-neutral-300 tracking-wider mb-2">SOURCE DETAILS</h3>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-neutral-400">Source Type:</span>
+                    <span className="text-white font-mono">{selectedReport.source}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-neutral-400">Location:</span>
+                    <span className="text-white">{selectedReport.location}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-neutral-400">Date:</span>
+                    <span className="text-white font-mono">{selectedReport.date}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-neutral-400">Status:</span>
+                    <Badge className={getStatusBadgeColor(selectedReport.status)}>
+                      {selectedReport.status.toUpperCase()}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-sm font-medium text-neutral-300 tracking-wider mb-2">TAGS</h3>
+                <div className="flex flex-wrap gap-2">
+                  {selectedReport.tags.map((tag) => (
+                    <Badge key={tag} className="bg-neutral-800 text-neutral-300">
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
               </div>
 
-              <div className="flex gap-2 pt-4 border-t border-neutral-700">
-                <Button className="bg-orange-500 hover:bg-orange-600 text-white">
-                  <Eye className="w-4 h-4 mr-2" />
-                  View Full Report
-                </Button>
-                <Button
-                  variant="outline"
-                  className="border-neutral-700 text-neutral-400 hover:bg-neutral-800 hover:text-neutral-300 bg-transparent"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Download
-                </Button>
-                <Button
-                  variant="outline"
-                  className="border-neutral-700 text-neutral-400 hover:bg-neutral-800 hover:text-neutral-300 bg-transparent"
-                >
-                  Share Intel
-                </Button>
+              <div>
+                <h3 className="text-sm font-medium text-neutral-300 tracking-wider mb-2">THREAT ASSESSMENT</h3>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-neutral-400">Threat Level</span>
+                    <Badge className={getSeverityColor(selectedReport.threat)}>
+                      {selectedReport.threat.toUpperCase()}
+                    </Badge>
+                  </div>
+                  <ProgressBar
+                    value={threatToProgress[selectedReport.threat] ?? 50}
+                    barColor={threatToBarColor[selectedReport.threat] ?? "bg-neutral-400"}
+                  />
+                </div>
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-sm font-medium text-neutral-300 tracking-wider mb-2">EXECUTIVE SUMMARY</h3>
+            <p className="text-sm text-neutral-300 leading-relaxed">{selectedReport.summary}</p>
+          </div>
+        </DetailModal>
       )}
     </div>
   )
