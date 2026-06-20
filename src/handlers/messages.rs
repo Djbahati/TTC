@@ -1,18 +1,24 @@
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Request, State},
     http::StatusCode,
     response::Json,
 };
 use uuid::Uuid;
 use crate::{AppState, models::*};
+use crate::auth::AuthenticatedUser;
 use crate::services::messages as message_service;
 
 pub async fn list_messages(
     State(state): State<AppState>,
+    request: Request,
 ) -> Result<Json<Vec<Message>>, StatusCode> {
-    // In real implementation, extract user_id from JWT token
-    let user_id = Uuid::new_v4(); // Placeholder
-    
+    let authenticated_user = request
+        .extensions()
+        .get::<AuthenticatedUser>()
+        .ok_or(StatusCode::UNAUTHORIZED)?;
+
+    let user_id = authenticated_user.user_id;
+
     match message_service::get_user_messages(&state.db, user_id).await {
         Ok(messages) => Ok(Json(messages)),
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
@@ -21,17 +27,27 @@ pub async fn list_messages(
 
 pub async fn send_message(
     State(state): State<AppState>,
-    Json(request): Json<SendMessageRequest>,
+    request: Request,
 ) -> Result<Json<Message>, StatusCode> {
-    // In real implementation, extract sender_id from JWT token
-    let sender_id = Uuid::new_v4(); // Placeholder
-    
-    match message_service::send_message(&state.db, sender_id, request).await {
+    let authenticated_user = request
+        .extensions()
+        .get::<AuthenticatedUser>()
+        .ok_or(StatusCode::UNAUTHORIZED)?;
+
+    let sender_id = authenticated_user.user_id;
+
+    // Extract the JSON body manually since we already consumed request for extensions
+    let body = axum::body::to_bytes(request.into_body(), 1024 * 1024)
+        .await
+        .map_err(|_| StatusCode::BAD_REQUEST)?;
+    let send_request: SendMessageRequest = serde_json::from_slice(&body)
+        .map_err(|_| StatusCode::BAD_REQUEST)?;
+
+    match message_service::send_message(&state.db, sender_id, send_request).await {
         Ok(message) => {
-            // Send WebSocket notification to recipient
             let message_data = serde_json::to_value(&message).unwrap();
             state.websocket_state.send_message_notification(&message.recipient_id, message_data).await;
-            
+
             Ok(Json(message))
         }
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),

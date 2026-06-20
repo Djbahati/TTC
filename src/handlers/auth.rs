@@ -1,9 +1,10 @@
 use axum::{
-    extract::State,
+    extract::{Request, State},
     http::StatusCode,
     response::Json,
 };
 use crate::{AppState, models::*};
+use crate::auth::AuthenticatedUser;
 use crate::services::auth as auth_service;
 
 pub async fn login(
@@ -27,9 +28,37 @@ pub async fn register(
 }
 
 pub async fn me(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
+    request: Request,
 ) -> Result<Json<UserInfo>, StatusCode> {
-    // This would extract user info from JWT token
-    // For now, return a placeholder
-    Err(StatusCode::NOT_IMPLEMENTED)
+    let authenticated_user = request
+        .extensions()
+        .get::<AuthenticatedUser>()
+        .ok_or(StatusCode::UNAUTHORIZED)?;
+
+    let user = sqlx::query_as!(
+        User,
+        r#"
+        SELECT 
+            id, email, password_hash, role as "role: UserRole",
+            first_name, last_name, phone, is_active, last_login, created_at, updated_at
+        FROM users 
+        WHERE id = $1 AND is_active = true
+        "#,
+        authenticated_user.user_id
+    )
+    .fetch_optional(&state.db)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    match user {
+        Some(user) => Ok(Json(UserInfo {
+            id: user.id,
+            email: user.email,
+            role: user.role,
+            first_name: user.first_name,
+            last_name: user.last_name,
+        })),
+        None => Err(StatusCode::NOT_FOUND),
+    }
 }
